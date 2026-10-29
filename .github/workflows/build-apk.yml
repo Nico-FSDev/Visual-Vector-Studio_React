@@ -1,0 +1,314 @@
+name: Best-in-Class Mobile CI/CD (Android APK & AAB)
+
+on:
+  push:
+    branches: [main, master, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  # ===========================================================================
+  # JOB 1: Pre-flight Code Quality, Type Safety & Security Audit
+  # ===========================================================================
+  validate:
+    name: Code Quality & Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (Active LTS 22)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: Strict TypeScript Compilation Check
+        run: npx tsc --noEmit
+
+      - name: ESLint Static Analysis
+        run: npm run lint
+
+      - name: Dependency Security Audit
+        run: npm audit --audit-level=high || echo "::warning title=Security Audit::High or critical vulnerabilities detected in npm dependencies. Review npm audit output."
+
+  # ===========================================================================
+  # JOB 2: Build Web Application & Native Android Binaries (APK + AAB)
+  # ===========================================================================
+  build-android:
+    name: Build & Sign Android (APK + AAB)
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js (Active LTS 22)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+
+      - name: Build Web Production Assets
+        run: npm run build
+
+      - name: Setup Java JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Setup Enterprise Gradle Caching
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Android SDK & Accept Licenses
+        run: |
+          ANDROID_SDK_PATH="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          echo "ANDROID_HOME=$ANDROID_SDK_PATH" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_PATH" >> $GITHUB_ENV
+          mkdir -p ~/.android
+          touch ~/.android/repositories.cfg
+          if [ -x "$ANDROID_SDK_PATH/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | "$ANDROID_SDK_PATH/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          elif [ -x "$ANDROID_SDK_PATH/tools/bin/sdkmanager" ]; then
+            yes | "$ANDROID_SDK_PATH/tools/bin/sdkmanager" --licenses || true
+          fi
+
+      - name: Ensure Android Native Scaffold
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+
+      - name: Generate Native Icons & Assets
+        run: |
+          mkdir -p assets
+          if [ -f "public/icon.png" ]; then
+            cp public/icon.png assets/icon.png
+            cp public/icon.png assets/splash.png
+          fi
+          npx @capacitor/assets generate --android || true
+
+      - name: Synchronize Capacitor Web Assets
+        run: npx cap sync android
+
+      - name: Derive Semantic Version & Build Code
+        run: |
+          RAW_PKG_VER=$(node -p "require('./package.json').version || '1.0.0'")
+          if [[ "${{ github.ref }}" =~ ^refs/tags/v ]]; then
+            VER_NAME="${GITHUB_REF_NAME#v}"
+          elif [ -n "$RAW_PKG_VER" ] && [ "$RAW_PKG_VER" != "0.0.0" ]; then
+            VER_NAME="$RAW_PKG_VER"
+          else
+            VER_NAME="1.0.0"
+          fi
+          
+          BUILD_NUM=${{ github.run_number }}
+          echo "Android Version Name: $VER_NAME"
+          echo "Android Version Code: $BUILD_NUM"
+          echo "VERSION_NAME=$VER_NAME" >> $GITHUB_ENV
+          echo "VERSION_CODE=$BUILD_NUM" >> $GITHUB_ENV
+
+      - name: Validate & Self-Heal Gradle Wrapper (Gradle 8.14.3)
+        run: |
+          cd android
+          TARGET_GRADLE_VER="8.14.3"
+          mkdir -p gradle/wrapper
+          printf "%s\n" \
+            "distributionBase=GRADLE_USER_HOME" \
+            "distributionPath=wrapper/dists" \
+            "distributionUrl=https\://services.gradle.org/distributions/gradle-${TARGET_GRADLE_VER}-all.zip" \
+            "networkTimeout=10000" \
+            "validateDistributionUrl=true" \
+            "zipStoreBase=GRADLE_USER_HOME" \
+            "zipStorePath=wrapper/dists" > gradle/wrapper/gradle-wrapper.properties
+          if [ ! -f "gradlew" ] || [ ! -s "gradle/wrapper/gradle-wrapper.jar" ] || ! unzip -t gradle/wrapper/gradle-wrapper.jar >/dev/null 2>&1; then
+            echo "Fetching official gradle-wrapper.jar for Gradle $TARGET_GRADLE_VER..."
+            curl -sSL -o gradle/wrapper/gradle-wrapper.jar "https://raw.githubusercontent.com/gradle/gradle/v${TARGET_GRADLE_VER}/gradle/wrapper/gradle-wrapper.jar" || \
+            curl -sSL -o gradle/wrapper/gradle-wrapper.jar "https://cdn.jsdelivr.net/gh/gradle/gradle@v${TARGET_GRADLE_VER}/gradle/wrapper/gradle-wrapper.jar"
+          fi
+          chmod +x gradlew
+
+      - name: Provision Signing Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'androidpassword' }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS || 'releasekey' }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD || 'androidpassword' }}
+        run: |
+          mkdir -p android/app
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Decoding release keystore from ANDROID_KEYSTORE_BASE64 GitHub Secret"
+            printf "%s" "$KEYSTORE_BASE64" | base64 -d > android/app/release.keystore
+          elif [ -s "android/app/release.keystore" ]; then
+            echo "Using committed repository release keystore at android/app/release.keystore"
+          else
+            echo "::notice title=Android Keystore::No ANDROID_KEYSTORE_BASE64 secret configured. Generating self-signed fallback keystore for release artifact packaging."
+            keytool -genkeypair -v \
+              -keystore android/app/release.keystore \
+              -alias "$KEY_ALIAS" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "$KEYSTORE_PASSWORD" \
+              -keypass "$KEY_PASSWORD" \
+              -dname "CN=App Developer, OU=Mobile, O=Visual Vector Studio, L=Paris, ST=IDF, C=FR"
+          fi
+
+      - name: Compile Debug APK, Release APK & Release AAB
+        env:
+          VERSION_NAME: ${{ env.VERSION_NAME }}
+          VERSION_CODE: ${{ env.VERSION_CODE }}
+          KEYSTORE_FILE: release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'androidpassword' }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS || 'releasekey' }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD || 'androidpassword' }}
+        run: |
+          cd android
+          chmod +x gradlew
+          export VERSION_NAME VERSION_CODE KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD
+          ./gradlew assembleDebug assembleRelease bundleRelease --no-daemon
+
+      - name: Align & Sign Binaries (apksigner v1 + v2/v3 Schemes)
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'androidpassword' }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || secrets.KEY_ALIAS || 'releasekey' }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD || 'androidpassword' }}
+        run: |
+          BUILD_TOOLS_DIR=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -n 1)
+          RAW_APK=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -n "$RAW_APK" ]; then
+            echo "Aligning APK with zipalign:"
+            $BUILD_TOOLS_DIR/zipalign -v -p 4 "$RAW_APK" "$RAW_APK.aligned" || cp "$RAW_APK" "$RAW_APK.aligned"
+            if [ -f "android/app/release.keystore" ]; then
+              echo "Signing APK with apksigner (v1 + v2 + v3):"
+              $BUILD_TOOLS_DIR/apksigner sign \
+                --ks android/app/release.keystore \
+                --ks-pass "pass:$KEYSTORE_PASSWORD" \
+                --ks-key-alias "$KEY_ALIAS" \
+                --key-pass "pass:$KEY_PASSWORD" \
+                --v1-signing-enabled true \
+                --v2-signing-enabled true \
+                --out "$RAW_APK" "$RAW_APK.aligned"
+              $BUILD_TOOLS_DIR/apksigner verify --verbose "$RAW_APK" || true
+            fi
+          fi
+
+      - name: Secure Cleanup of Keystore Material
+        if: always() && env.KEYSTORE_BASE64 != ''
+        run: rm -f android/app/release.keystore
+
+      - name: Organize & Compute SHA-256 Checksums
+        run: |
+          mkdir -p build-output
+          
+          # Debug APK
+          cp android/app/build/outputs/apk/debug/app-debug.apk build-output/app-debug-v${{ env.VERSION_NAME }}-b${{ env.VERSION_CODE }}.apk || true
+          
+          # Release APK
+          find android/app/build/outputs/apk/release/ -name "*.apk" -exec cp {} build-output/app-release-v${{ env.VERSION_NAME }}-b${{ env.VERSION_CODE }}.apk \; || true
+          
+          # Release AAB (Google Play Store Bundle)
+          find android/app/build/outputs/bundle/release/ -name "*.aab" -exec cp {} build-output/app-release-v${{ env.VERSION_NAME }}-b${{ env.VERSION_CODE }}.aab \; || true
+          
+          # Standard clean copies
+          cp build-output/app-release-v${{ env.VERSION_NAME }}-b${{ env.VERSION_CODE }}.apk build-output/app-release.apk || true
+          cp build-output/app-release-v${{ env.VERSION_NAME }}-b${{ env.VERSION_CODE }}.aab build-output/app-release.aab || true
+          cp build-output/app-debug-v${{ env.VERSION_NAME }}-b${{ env.VERSION_CODE }}.apk build-output/app-debug.apk || true
+          
+          # Generate Cryptographic SHA-256 Hashes
+          cd build-output
+          sha256sum app-release-v*.apk app-release-v*.aab app-debug-v*.apk > checksums.txt || sha256sum *.apk *.aab > checksums.txt
+
+      - name: Generate Rich GitHub Step Summary
+        run: |
+          echo "### 🚀 Android Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "**Version Name:** \`${{ env.VERSION_NAME }}\` | **Version Code:** \`${{ env.VERSION_CODE }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Artifact File | Type | Size | SHA-256 Checksum |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          
+          cd build-output
+          for file in app-release-v*.apk app-release-v*.aab app-debug-v*.apk; do
+            if [ -f "$file" ]; then
+              SIZE=$(du -h "$file" | cut -f1)
+              HASH=$(sha256sum "$file" | cut -d' ' -f1)
+              TYPE="Release APK"
+              if [[ "$file" == *.aab ]]; then TYPE="Google Play Bundle (.aab)"; fi
+              if [[ "$file" == *debug* ]]; then TYPE="Debug APK"; fi
+              echo "| \`$file\` | **$TYPE** | $SIZE | \`$HASH\` |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: Upload Debug Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: app-debug-v${{ env.VERSION_NAME }}-b${{ env.VERSION_CODE }}
+          path: build-output/app-debug*.apk
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Upload Release Artifacts & SHA-256 Checksums
+        uses: actions/upload-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: app-release-v${{ env.VERSION_NAME }}-b${{ env.VERSION_CODE }}
+          path: |
+            build-output/app-release*.apk
+            build-output/app-release*.aab
+            build-output/checksums.txt
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Upload Build Diagnostics on Failure
+        if: failure()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-failure-logs
+          path: android/app/build/outputs/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      # ===========================================================================
+      # Publish GitHub Release on Tag Directly (Bypasses Artifact Storage Quota)
+      # ===========================================================================
+      - name: Publish Production Release on Tag
+        if: startsWith(github.ref, 'refs/tags/v') && success()
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build-output/app-release*.apk
+            build-output/app-release*.aab
+            build-output/checksums.txt
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

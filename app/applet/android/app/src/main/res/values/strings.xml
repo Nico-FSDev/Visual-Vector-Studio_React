@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Visual Vector Studio</string>
+    <string name="title_activity_main">Visual Vector Studio</string>
+    <string name="package_name">com.visualvectorstudio.app</string>
+    <string name="custom_url_scheme">com.visualvectorstudio.app</string>
+    <string name="server_client_id">719425329038-hd4d86qjcoedr7r6hfhd34gjd9nfnkm7.apps.googleusercontent.com</string>
+</resources>

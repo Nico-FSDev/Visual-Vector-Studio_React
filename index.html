@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#0f172a" />
+    <link rel="apple-touch-icon" href="/icon.png" />
+    <meta name="description" content="Atelier de création de dessin vectoriel et concepteur de cartes de visite et QR codes de qualité professionnelle." />
+    <meta property="og:title" content="Visual Vector Studio React" />
+    <meta property="og:description" content="Atelier de création de dessin vectoriel et concepteur de cartes de visite et QR codes de qualité professionnelle." />
+    <title>Visual Vector Studio React</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

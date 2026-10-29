@@ -1,0 +1,155 @@
+1224:  const [activeTool, setActiveTool] = useState<string>("select");
+1565:    if (activeTool !== lastActiveToolRef.current) {
+1567:      if (activeTool === "paintbrush") {
+1574:      } else if (activeTool === "pencil") {
+1579:      } else if (activeTool === "airbrush") {
+1585:      } else if (activeTool === "eraser") {
+1590:      } else if (activeTool === "dodge" || activeTool === "burn") {
+1594:      } else if (activeTool === "clone-stamp") {
+1597:      } else if (activeTool === "arc") {
+1604:      lastActiveToolRef.current = activeTool;
+1607:      if (activeTool === "paintbrush") {
+1615:      } else if (activeTool === "pencil") {
+1621:      } else if (activeTool === "airbrush") {
+1628:      } else if (activeTool === "eraser") {
+1634:      } else if (activeTool === "dodge" || activeTool === "burn") {
+1639:      } else if (activeTool === "clone-stamp") {
+1643:      } else if (activeTool === "arc") {
+1653:    activeTool,
+2882:    if (activeTool === "magic-wand" || activeTool === "color-select") {
+2982:            if (activeTool === "color-select") {
+3082:    if (activeTool === "magic-eraser") {
+3147:    if (activeTool === "ai-eraser") {
+3156:    if (activeTool === "eyedropper") {
+3178:    if (activeTool === "bucket") {
+3214:    if (activeTool === "lighten" || activeTool === "darken") {
+3221:                activeTool === "lighten"
+3226:                  ? activeTool === "lighten"
+3240:            `Outil ${activeTool === "lighten" ? "Éclaircir" : "Assombrir"} : couleur de '${clicked.name}' modifiée.`,
+3247:    if (activeTool === "zoom") {
+3259:    if (activeTool === "pan" || activeTool === "move-object") {
+3271:    if (activeTool !== "select" && activeTool !== "bg-remover") {
+3276:      if (activeTool === "select-rect") {
+3300:      } else if (activeTool === "select-circle") {
+3324:      } else if (activeTool === "paintbrush") {
+3352:      } else if (activeTool === "pencil") {
+3380:      } else if (activeTool === "airbrush") {
+3418:      } else if (activeTool === "eraser") {
+3422:      } else if (activeTool === "lasso") {
+3447:      } else if (activeTool === "gradient") {
+3453:      } else if (activeTool === "clone-stamp") {
+3491:      } else if (activeTool === "dodge" || activeTool === "burn") {
+3494:          id: activeTool + "-" + Date.now(),
+3495:          name: activeTool === "dodge" ? "Outil Éclaircir" : "Outil Assombrir",
+3496:          type: activeTool,
+3508:          stroke: activeTool === "dodge" ? "white" : "black",
+3518:      } else if (activeTool === "path") {
+3558:        ].includes(activeTool);
+3559:        const isArc = activeTool === "arc";
+3562:          activeTool === "rect"
+3564:            : activeTool === "circle"
+3566:              : activeTool === "star"
+3569:                  ? `Forme: ${activeTool}`
+3572:                    : activeTool === "line"
+3577:          id: "temp-" + activeTool + "-" + Date.now(),
+3579:          type: (isCustomShape ? "shape" : isArc ? "arc" : activeTool) as any,
+3580:          shapeType: isCustomShape ? (activeTool as any) : undefined,
+3588:            activeTool === "text" || activeTool === "line" || isArc
+3596:            activeTool === "text"
+3602:            activeTool === "text"
+3608:          rx: activeTool === "rect" ? 6 : undefined,
+3609:          points: activeTool === "star" ? 5 : undefined,
+3613:          textValue: activeTool === "text" ? "Atelier Vectoriel" : undefined,
+3614:          fontFamily: activeTool === "text" ? "Inter" : undefined,
+3615:          fontWeight: activeTool === "text" ? "bold" : undefined,
+3617:            activeTool === "line"
+3682:          activeTool === "paintbrush" ||
+3683:          activeTool === "pencil" ||
+3684:          activeTool === "clone-stamp" ||
+3685:          activeTool === "dodge" ||
+3686:          activeTool === "burn"
+3694:              if (activeTool === "pencil" && pencilSmoothing > 1) {
+3724:        } else if (activeTool === "airbrush") {
+3744:        } else if (activeTool === "lasso") {
+3824:    if (activeTool === "eraser") {
+3830:    if (activeTool === "gradient" && selectedElementId) {
+3885:        (activeTool === "paintbrush" ||
+3886:          activeTool === "pencil" ||
+3887:          activeTool === "airbrush")
+3893:      if (activeTool === "lasso") {
+3916:        activeTool === "select-rect" ||
+3917:        activeTool === "select-circle"
+3933:          if (activeTool === "select-rect") {
+3962:          `Sélection zone (${activeTool === "select-rect" ? "Rectangle" : "Ellipse"}) : ${matchedIds.length} éléments sélectionnés.`,
+4011:    } else if (activeTool === "eraser") {
+4129:    } else if (activeTool === "gradient") {
+4140:    if (activeTool === "eraser") {
+5407:                activeTool === currentSubTool.id ||
+5408:                slot.subTools.some((t) => t.id === activeTool);
+5490:                          const isSubActive = activeTool === sub.id;
+6049:              const activeToolObj = TOOL_SLOTS.flatMap((g) => g.subTools).find(
+6050:                (t) => t.id === activeTool,
+6052:              if (!activeToolObj) return null;
+6053:              const ActiveToolIcon = activeToolObj.icon;
+6062:                    {(activeTool === "magic-wand" || activeTool === "color-select") && (
+6077:            className={`flex-1 w-full flex items-center justify-center overflow-hidden relative py-6 select-none ${spacePressed || activeTool === "pan" ? (isPanning ? "cursor-grabbing" : "cursor-grab") : "cursor-none"}`}
+6079:              if (spacePressed || e.button === 1 || activeTool === "pan") {
+6090:                (spacePressed || activeTool === "pan") &&
+6209:                  className={`w-full h-full relative z-10 ${spacePressed || activeTool === "pan" ? (isPanning ? "cursor-grabbing" : "cursor-grab") : "cursor-none"}`}
+6393:                              activeTool === "eraser" &&
+6437:                        activeTool === "eraser" &&
+6534:                    ].includes(activeTool);
+6548:                          activeTool === "eraser" &&
+7085:                    (activeTool === "eraser" ||
+7086:                      activeTool === "paintbrush" ||
+7087:                      activeTool === "airbrush" ||
+7088:                      activeTool === "pencil" ||
+7089:                      activeTool === "dodge" ||
+7090:                      activeTool === "burn" ||
+7091:                      activeTool === "clone-stamp") && (
+7098:                            activeTool === "eraser"
+7100:                              : activeTool === "paintbrush"
+7102:                                : activeTool === "airbrush"
+7104:                                  : activeTool === "dodge" ||
+7105:                                      activeTool === "burn"
+7107:                                    : activeTool === "clone-stamp"
+7113:                            activeTool === "eraser"
+7115:                              : activeTool === "clone-stamp"
+7129:                        {activeTool === "clone-stamp" &&
+7396:                {activeTool === "select" ? "Sélection" : activeTool}
+7568:                      {activeTool === "magic-wand"
+7570:                        : activeTool === "color-select"
+7572:                          : activeTool === "paintbrush"
+7574:                            : activeTool === "pencil"
+7576:                              : activeTool === "airbrush"
+7578:                                : activeTool === "eraser"
+7580:                                  : activeTool === "magic-eraser"
+7582:                                    : activeTool === "eyedropper"
+7584:                                      : activeTool === "bucket"
+7586:                                        : activeTool === "gradient"
+7588:                                          : activeTool === "lasso"
+7590:                                            : activeTool === "select"
+7592:                                              : activeTool.toUpperCase()}
+7620:                    ].includes(activeTool);
+7653:                  {activeTool === "magic-wand" && (
+7765:                  {activeTool === "color-select" && (
+7851:                  {activeTool === "paintbrush" && (
+8033:                  {activeTool === "pencil" && (
+8213:                  {(activeTool === "dodge" || activeTool === "burn") && (
+8239:                            {activeTool === "dodge" ? "Éclaircir" : "Assombrir"}
+8260:                  {activeTool === "clone-stamp" && (
+8295:                  {activeTool === "arc" && (
+8380:                  {activeTool === "airbrush" && (
+8572:                  {activeTool === "eraser" && (
+8642:                  {activeTool === "magic-eraser" && (
+8691:                  {activeTool === "ai-eraser" && (
+8782:                  {activeTool === "bg-remover" && (
+8817:                  {activeTool === "eyedropper" && (
+8838:                  {activeTool === "bucket" && (
+8975:                  {activeTool === "lasso" && (
+8985:                  {activeTool === "select" && (
+8994:                  {(activeTool === "move-object" || activeTool === "pan") && (
+9045:                  {activeTool === "zoom" && (
+9091:                  {(activeTool === "paintbrush" ||
+9092:                    activeTool === "bucket" ||
+9093:                    activeTool === "eyedropper") && (

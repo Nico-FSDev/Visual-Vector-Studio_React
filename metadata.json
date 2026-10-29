@@ -1,0 +1,6 @@
+{
+  "name": "Visual Vector Studio",
+  "description": "Atelier de création de dessin vectoriel et concepteur de cartes de visite et QR codes de qualité professionnelle.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

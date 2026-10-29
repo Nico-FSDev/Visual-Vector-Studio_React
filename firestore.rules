@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Connectivity test endpoint
+    match /test/{docId} {
+      allow read: if true;
+    }
+
+    // Logs
+    match /logs/{logId} {
+      // Anyone can create error logs (anonymous or signed in), but only the authenticated admin can read them.
+      allow create: if true; 
+      allow read: if request.auth != null && request.auth.token.email == "n.lohberger.pro@gmail.com" && request.auth.token.email_verified == true;
+    }
+    
+    // User Profiles
+    match /users/{userId} {
+      match /public/profile {
+        allow read: if true;
+        allow write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      match /private/info {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      match /documents/{documentId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      match /motifs/{motifId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}

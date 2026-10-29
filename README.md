@@ -1,11 +1,31 @@
-<div align="center">
+# Visual Vector Studio React (Visual-Vector-Studio_React)
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+Application professionnelle de création graphique vectorielle, conception de cartes de visite, QR codes artistiques, et studio tableau blanc/noir/paperboard pédagogique.
 
-  <h1>Built with AI Studio</h2>
+- **Dépôt GitHub** : [https://github.com/Nico-FSDev/Visual-Vector-Studio_React](https://github.com/Nico-FSDev/Visual-Vector-Studio_React)
+- **Stack Technique** : React 19, TypeScript, Vite, Tailwind CSS v4, Capacitor 8 (Android), Firebase Auth & Firestore.
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## Démarrage Rapide
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+```bash
+# Installation des dépendances
+npm install
 
-</div>
+# Lancement du serveur de développement
+npm run dev
+
+# Vérification du typage et du code
+npm run lint
+
+# Compilation pour la production
+npm run build
+```
+
+## Build Android (APK & AAB)
+
+Le pipeline CI/CD GitHub Actions (`.github/workflows/build-apk.yml`) compile automatiquement les assets web et génère les binaires Android (APK de débogage et APK/AAB signés pour la publication).
+
+```bash
+# Synchronisation Capacitor
+npx cap sync android
+```

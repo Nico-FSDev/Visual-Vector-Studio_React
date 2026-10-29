@@ -1,0 +1,102 @@
+{
+  "entities": {
+    "Log": {
+      "title": "Application Log",
+      "description": "Captured errors in the application, stored in Firebase under the project database.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "message": { "type": "string" },
+        "stack": { "type": "string" },
+        "email": { "type": "string" },
+        "component": { "type": "string" }
+      },
+      "required": ["timestamp", "message", "email"]
+    },
+    "UserPublic": {
+      "title": "User Public Profile",
+      "description": "Publicly viewable user profile information.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "displayName", "createdAt"]
+    },
+    "UserPrivate": {
+      "title": "User Private Information",
+      "description": "Sensitive personally identifiable information (PII).",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "emailVerified": { "type": "boolean" },
+        "updatedAt": { "type": "string" },
+        "genericProfile": {
+          "type": "object",
+          "description": "Mon Profil de Renseignement Générique (clés/valeurs évolutives)"
+        }
+      },
+      "required": ["userId", "email"]
+    },
+    "ProjectDocument": {
+      "title": "Project Document",
+      "description": "A single Illustrator canvas document.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "elements": { "type": "array" },
+        "history": { "type": "array" },
+        "historyPointer": { "type": "number" },
+        "canvasWidth": { "type": "number" },
+        "canvasHeight": { "type": "number" },
+        "canvasBgColor": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "id", "name", "updatedAt"]
+    },
+    "SavedMotif": {
+      "title": "Saved Image Motif",
+      "description": "Original imported image motif stored in Firebase for reset capability.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "width": { "type": "number" },
+        "height": { "type": "number" },
+        "canvasBgColor": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "id", "imageUrl", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "logs/{logId}": {
+      "schema": "Log",
+      "description": "Logs and errors for the application"
+    },
+    "users/{userId}/public/profile": {
+      "schema": "UserPublic",
+      "description": "Public profile configuration."
+    },
+    "users/{userId}/private/info": {
+      "schema": "UserPrivate",
+      "description": "Private profile information."
+    },
+    "users/{userId}/documents/{documentId}": {
+      "schema": "ProjectDocument",
+      "description": "User's saved illustrator documents."
+    },
+    "users/{userId}/motifs/{motifId}": {
+      "schema": "SavedMotif",
+      "description": "User's saved imported image motifs for reinitialization."
+    }
+  }
+}
