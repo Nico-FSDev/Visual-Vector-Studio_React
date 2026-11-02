@@ -683,4 +683,14 @@ async function setupServer() {
   });
 }
 
-setupServer();
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception in server:", err);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+setupServer().catch((err) => {
+  console.error("Failed to initialize server:", err);
+});
